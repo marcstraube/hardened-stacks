@@ -1,0 +1,60 @@
+---
+name: diun
+
+services:
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.4.2
+    container_name: diun-socket-proxy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  diun:
+    image: crazymax/diun:4.29.0
+    container_name: diun
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    mem_limit: 256m
+    command: serve
+    ports:
+      - "127.0.0.1:${DIUN_PORT:-8899}:8899"
+    env_file:
+      - .env
+    environment:
+      TZ: Europe/Berlin
+      DIUN_WATCH_SCHEDULE: ${DIUN_WATCH_SCHEDULE:-0 6 * * *}
+      DIUN_PROVIDERS_DOCKER: "true"
+      DIUN_PROVIDERS_DOCKER_ENDPOINT: tcp://docker-socket-proxy:2375
+      DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
+    volumes:
+      - ./data:/data
+    depends_on:
+      - docker-socket-proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

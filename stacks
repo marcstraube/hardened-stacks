@@ -1,0 +1,22 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
+usage() {
+  echo "Usage: ./stacks <command> [services...]"
+  echo ""
+  echo "Commands:"
+  echo "  setup   [service...]  Generate .env files and create directories"
+  echo "  deploy  [service...]  Git pull, pull images, start containers"
+  echo "  lint                  Validate all configs"
+  echo ""
+  echo "If no service is specified, the command applies to all stacks."
+}
+
+case "${1:-}" in
+  setup)   shift; exec "$ROOT_DIR/scripts/setup.sh" "$@" ;;
+  deploy)  shift; exec "$ROOT_DIR/scripts/deploy.sh" "$@" ;;
+  lint)    exec "$ROOT_DIR/scripts/lint.sh" ;;
+  *)       usage ;;
+esac

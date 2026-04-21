@@ -1,0 +1,32 @@
+---
+name: jellyfin
+
+services:
+  jellyfin:
+    image: jellyfin/jellyfin:10.11.8
+    container_name: jellyfin
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 4g
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      - "127.0.0.1:${JELLYFIN_PORT:-8096}:8096"
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      - ./config:/config
+      - ./cache:/cache
+      - ${JELLYFIN_MEDIA_PATH:-./media}:/media:ro
+    # Uncomment for Intel Quick Sync hardware transcoding:
+    # devices:
+    #   - /dev/dri/renderD128:/dev/dri/renderD128
+    # group_add:
+    #   - "109"
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

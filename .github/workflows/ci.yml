@@ -1,0 +1,31 @@
+---
+name: CI
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '*/docker-compose.yml'
+      - '*/.env.example'
+      - 'scripts/*.sh'
+      - 'stacks'
+      - '.github/workflows/ci.yml'
+  pull_request:
+    paths:
+      - '*/docker-compose.yml'
+      - '*/.env.example'
+      - 'scripts/*.sh'
+      - 'stacks'
+      - '.github/workflows/ci.yml'
+
+jobs:
+  lint:
+    name: Lint
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Run lint
+        run: ./scripts/lint.sh

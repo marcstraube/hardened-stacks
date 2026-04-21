@@ -1,0 +1,75 @@
+---
+name: forgejo
+
+services:
+  postgres:
+    image: postgres:16.10-alpine
+    container_name: forgejo-postgres
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    mem_limit: 512m
+    environment:
+      POSTGRES_DB: forgejo
+      POSTGRES_USER: forgejo
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U forgejo"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  forgejo:
+    image: codeberg.org/forgejo/forgejo:15
+    container_name: forgejo
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - NET_BIND_SERVICE
+      - SETUID
+      - SETGID
+    mem_limit: 512m
+    ports:
+      - "127.0.0.1:${FORGEJO_HTTP_PORT:-3003}:3000"
+      - "127.0.0.1:${FORGEJO_SSH_PORT:-222}:22"
+    environment:
+      USER_UID: ${PUID:-1000}
+      USER_GID: ${PGID:-1000}
+      FORGEJO__database__DB_TYPE: postgres
+      FORGEJO__database__HOST: postgres:5432
+      FORGEJO__database__NAME: forgejo
+      FORGEJO__database__USER: forgejo
+      FORGEJO__database__PASSWD: ${POSTGRES_PASSWORD}
+      FORGEJO__server__ROOT_URL: ${FORGEJO_URL:-http://localhost:3003}
+      FORGEJO__server__DOMAIN: ${FORGEJO_DOMAIN:-localhost}
+      FORGEJO__server__SSH_DOMAIN: ${FORGEJO_DOMAIN:-localhost}
+      FORGEJO__server__SSH_PORT: ${FORGEJO_SSH_PORT:-222}
+    volumes:
+      - ./data:/data
+    depends_on:
+      postgres:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

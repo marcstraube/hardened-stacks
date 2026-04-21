@@ -1,0 +1,44 @@
+---
+# yamllint configuration for Docker Compose projects
+# Based on: ansible-infrastructure/marcstraube/common/.yamllint
+
+extends: default
+
+rules:
+  line-length:
+    max: 120
+    level: warning
+
+  comments:
+    min-spaces-from-content: 1
+  # Disabled: conflicts with commented-out YAML blocks (yamllint can't
+  # distinguish structural comments from disabled code sections)
+  comments-indentation: false
+
+  indentation:
+    spaces: 2
+    indent-sequences: true
+
+  truthy:
+    allowed-values: ['true', 'false']
+    check-keys: false
+
+  brackets:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+
+  braces:
+    min-spaces-inside: 0
+    max-spaces-inside: 0
+
+  document-start:
+    present: true
+
+  empty-lines:
+    max: 1
+
+  trailing-spaces: enable
+  key-duplicates: enable
+
+ignore: |
+  .git/

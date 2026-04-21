@@ -1,0 +1,55 @@
+---
+name: homarr
+
+services:
+  docker-socket-proxy:
+    image: tecnativa/docker-socket-proxy:v0.4.2
+    container_name: homarr-socket-proxy
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 128m
+    environment:
+      CONTAINERS: 1
+      IMAGES: 1
+      POST: 0
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  homarr:
+    image: ghcr.io/homarr-labs/homarr:v1.56.1
+    container_name: homarr
+    restart: unless-stopped
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    mem_limit: 512m
+    ports:
+      - "127.0.0.1:${HOMARR_PORT:-7575}:3000"
+    environment:
+      SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY}
+      DOCKER_HOST: tcp://docker-socket-proxy:2375
+      DISABLE_ANALYTICS: "true"
+      NEXT_TELEMETRY_DISABLED: 1
+      TZ: Europe/Berlin
+    volumes:
+      - ./data:/appdata
+    depends_on:
+      - docker-socket-proxy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

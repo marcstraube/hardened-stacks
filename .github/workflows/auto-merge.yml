@@ -1,0 +1,56 @@
+---
+name: Auto-merge patch updates
+
+on:
+  pull_request:
+    types: [opened, synchronize, reopened]
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  auto-merge:
+    name: Auto-merge patch updates
+    runs-on: ubuntu-latest
+    if: >-
+      github.actor == 'dependabot[bot]' ||
+      contains(github.head_ref, 'chore/update-')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v6
+
+      - name: Check if patch update
+        id: check
+        run: |
+          BRANCH="${{ github.head_ref }}"
+          PR_TITLE="${{ github.event.pull_request.title }}"
+
+          # Extract version from PR title (matches x.y.z patterns)
+          OLD=$(echo "$PR_TITLE" | grep -oP '\d+\.\d+\.\d+' | head -1 || true)
+          NEW=$(echo "$PR_TITLE" | grep -oP '\d+\.\d+\.\d+' | tail -1 || true)
+
+          if [[ -z "$OLD" || -z "$NEW" ]]; then
+            echo "is_patch=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
+
+          OLD_MAJOR=$(echo "$OLD" | cut -d. -f1)
+          OLD_MINOR=$(echo "$OLD" | cut -d. -f2)
+          NEW_MAJOR=$(echo "$NEW" | cut -d. -f1)
+          NEW_MINOR=$(echo "$NEW" | cut -d. -f2)
+
+          if [[ "$OLD_MAJOR" == "$NEW_MAJOR" && "$OLD_MINOR" == "$NEW_MINOR" ]]; then
+            echo "is_patch=true" >> "$GITHUB_OUTPUT"
+          else
+            echo "is_patch=false" >> "$GITHUB_OUTPUT"
+          fi
+
+      - name: Enable auto-merge
+        if: steps.check.outputs.is_patch == 'true'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh pr merge "${{ github.event.pull_request.number }}" \
+            --auto --squash --delete-branch
