@@ -11,12 +11,6 @@ on:
       - 'stacks'
       - '.github/workflows/ci.yml'
   pull_request:
-    paths:
-      - '*/docker-compose.yml'
-      - '*/.env.example'
-      - 'scripts/*.sh'
-      - 'stacks'
-      - '.github/workflows/ci.yml'
 
 jobs:
   lint:
