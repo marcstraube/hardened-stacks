@@ -114,12 +114,12 @@ jobs:
         id: version
         env:
           GH_TOKEN: ${{ github.token }}
+          IMAGE: ${{ matrix.image }}
+          FILE: ${{ matrix.file }}
+          JQ_FILTER: ${{ matrix.jq_filter }}
+          API: ${{ matrix.api }}
+          GITHUB_REPO: ${{ matrix.github_repo }}
         run: |
-          IMAGE="${{ matrix.image }}"
-          FILE="${{ matrix.file }}"
-          JQ_FILTER="${{ matrix.jq_filter }}"
-          API="${{ matrix.api }}"
-
           # Get current version from compose file
           CURRENT=$(grep -m1 "image: ${IMAGE}:" "$FILE" \
             | sed "s|.*${IMAGE}:||" | tr -d ' "')
@@ -128,10 +128,10 @@ jobs:
           # Get latest version from API
           if [ "$API" = "codeberg" ]; then
             LATEST=$(curl -sf \
-              "https://codeberg.org/api/v1/repos/${{ matrix.github_repo }}/releases/latest" \
+              "https://codeberg.org/api/v1/repos/${GITHUB_REPO}/releases/latest" \
               | jq -r "$JQ_FILTER")
           else
-            LATEST=$(gh api "repos/${{ matrix.github_repo }}/releases/latest" \
+            LATEST=$(gh api "repos/${GITHUB_REPO}/releases/latest" \
               --jq "$JQ_FILTER")
           fi
           echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
@@ -139,16 +139,17 @@ jobs:
 
       - name: Update compose file(s)
         if: steps.version.outputs.latest != steps.version.outputs.current
+        env:
+          IMAGE: ${{ matrix.image }}
+          CURRENT: ${{ steps.version.outputs.current }}
+          LATEST: ${{ steps.version.outputs.latest }}
+          FILE: ${{ matrix.file }}
+          EXTRA_IMAGES: ${{ matrix.extra_images }}
+          EXTRA_FILES: ${{ matrix.extra_files }}
         run: |
-          IMAGE="${{ matrix.image }}"
-          CURRENT="${{ steps.version.outputs.current }}"
-          LATEST="${{ steps.version.outputs.latest }}"
-          FILE="${{ matrix.file }}"
-
           sed -i "s|image: ${IMAGE}:${CURRENT}|image: ${IMAGE}:${LATEST}|g" "$FILE"
 
           # Update extra images (e.g. immich-machine-learning)
-          EXTRA_IMAGES="${{ matrix.extra_images }}"
           if [ -n "$EXTRA_IMAGES" ]; then
             for extra in $EXTRA_IMAGES; do
               sed -i "s|image: ${extra}:${CURRENT}|image: ${extra}:${LATEST}|g" "$FILE"
@@ -156,7 +157,6 @@ jobs:
           fi
 
           # Update extra files (e.g. docker-socket-proxy in multiple stacks)
-          EXTRA_FILES="${{ matrix.extra_files }}"
           if [ -n "$EXTRA_FILES" ]; then
             for ef in $EXTRA_FILES; do
               sed -i "s|image: ${IMAGE}:${CURRENT}|image: ${IMAGE}:${LATEST}|g" "$ef"
