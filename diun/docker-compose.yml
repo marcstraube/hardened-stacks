@@ -24,7 +24,7 @@ services:
         max-file: "3"
 
   diun:
-    image: crazymax/diun:4.29.0
+    image: crazymax/diun:4.31.0
     container_name: diun
     restart: unless-stopped
     security_opt:
