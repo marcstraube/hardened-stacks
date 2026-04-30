@@ -11,104 +11,9 @@ permissions:
   pull-requests: write
 
 jobs:
-  check-updates:
-    name: ${{ matrix.name }}
+  update-images:
+    name: Update images
     runs-on: ubuntu-latest
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - name: adguard-home
-            image: adguard/adguardhome
-            github_repo: AdguardTeam/AdGuardHome
-            file: adguard-home/docker-compose.yml
-            jq_filter: .tag_name
-
-          - name: activepieces
-            image: activepieces/activepieces
-            github_repo: activepieces/activepieces
-            file: activepieces/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("v")'
-
-          - name: authentik
-            image: ghcr.io/goauthentik/server
-            github_repo: goauthentik/authentik
-            file: authentik/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("version/")'
-
-          - name: diun
-            image: crazymax/diun
-            github_repo: crazy-max/diun
-            file: diun/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("v")'
-
-          - name: docker-socket-proxy
-            image: tecnativa/docker-socket-proxy
-            github_repo: Tecnativa/docker-socket-proxy
-            file: diun/docker-compose.yml
-            jq_filter: .tag_name
-            extra_files: homarr/docker-compose.yml
-
-          - name: forgejo
-            image: codeberg.org/forgejo/forgejo
-            github_repo: forgejo/forgejo
-            file: forgejo/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("v")'
-            api: codeberg
-
-          - name: grafana
-            image: grafana/grafana
-            github_repo: grafana/grafana
-            file: monitoring/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("v")'
-
-          - name: homarr
-            image: ghcr.io/homarr-labs/homarr
-            github_repo: homarr-labs/homarr
-            file: homarr/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("v")'
-
-          - name: immich
-            image: ghcr.io/immich-app/immich-server
-            github_repo: immich-app/immich
-            file: immich/docker-compose.yml
-            jq_filter: .tag_name
-            extra_images: ghcr.io/immich-app/immich-machine-learning
-
-          - name: jellyfin
-            image: jellyfin/jellyfin
-            github_repo: jellyfin/jellyfin
-            file: jellyfin/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("v")'
-
-          - name: n8n
-            image: n8nio/n8n
-            github_repo: n8n-io/n8n
-            file: n8n/docker-compose.yml
-            jq_filter: >-
-              [.[] | select(.prerelease == false and
-              (.tag_name | test("^n8n@2\\.")))][0].tag_name
-              | ltrimstr("n8n@")
-            api: releases-list
-
-          - name: paperless-ngx
-            image: ghcr.io/paperless-ngx/paperless-ngx
-            github_repo: paperless-ngx/paperless-ngx
-            file: paperless-ngx/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("v")'
-
-          - name: prometheus
-            image: prom/prometheus
-            github_repo: prometheus/prometheus
-            file: monitoring/docker-compose.yml
-            jq_filter: .tag_name
-
-          - name: uptime-kuma
-            image: louislam/uptime-kuma
-            github_repo: louislam/uptime-kuma
-            file: uptime-kuma/docker-compose.yml
-            jq_filter: .tag_name
 
     steps:
       - name: Generate app token
@@ -121,82 +26,79 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v6
 
-      - name: Get current and latest version
-        id: version
+      - name: Check and apply updates
+        id: updates
         env:
           GH_TOKEN: ${{ github.token }}
-          IMAGE: ${{ matrix.image }}
-          FILE: ${{ matrix.file }}
-          JQ_FILTER: ${{ matrix.jq_filter }}
-          API: ${{ matrix.api }}
-          GITHUB_REPO: ${{ matrix.github_repo }}
         run: |
-          # Get current version from compose file
-          CURRENT=$(grep -m1 "image: ${IMAGE}:" "$FILE" \
-            | sed "s|.*${IMAGE}:||" | tr -d ' "')
-          echo "current=$CURRENT" >> "$GITHUB_OUTPUT"
+          BODY=""
 
-          # Get latest version from API
-          if [ "$API" = "codeberg" ]; then
-            LATEST=$(curl -sf \
-              "https://codeberg.org/api/v1/repos/${GITHUB_REPO}/releases/latest" \
-              | jq -r "$JQ_FILTER")
-          elif [ "$API" = "releases-list" ]; then
-            LATEST=$(gh api "repos/${GITHUB_REPO}/releases" \
-              --jq "$JQ_FILTER")
-          else
-            LATEST=$(gh api "repos/${GITHUB_REPO}/releases/latest" \
-              --jq "$JQ_FILTER")
-          fi
-          echo "latest=$LATEST" >> "$GITHUB_OUTPUT"
-          echo "Current: $CURRENT → Latest: $LATEST"
+          while IFS= read -r entry; do
+            name=$(echo "$entry" | jq -r '.name')
+            image=$(echo "$entry" | jq -r '.image')
+            github_repo=$(echo "$entry" | jq -r '.github_repo')
+            file=$(echo "$entry" | jq -r '.file')
+            jq_filter=$(echo "$entry" | jq -r '.jq_filter')
+            api=$(echo "$entry" | jq -r '.api // empty')
+            extra_images=$(echo "$entry" | jq -r '.extra_images // empty')
+            extra_files=$(echo "$entry" | jq -r '.extra_files // empty')
 
-      - name: Update compose file(s)
-        if: steps.version.outputs.latest != steps.version.outputs.current
-        env:
-          IMAGE: ${{ matrix.image }}
-          CURRENT: ${{ steps.version.outputs.current }}
-          LATEST: ${{ steps.version.outputs.latest }}
-          FILE: ${{ matrix.file }}
-          EXTRA_IMAGES: ${{ matrix.extra_images }}
-          EXTRA_FILES: ${{ matrix.extra_files }}
-        run: |
-          sed -i "s|image: ${IMAGE}:${CURRENT}|image: ${IMAGE}:${LATEST}|g" "$FILE"
+            # Get current version from compose file
+            CURRENT=$(grep -m1 "image: ${image}:" "$file" \
+              | sed "s|.*${image}:||" | tr -d ' "')
 
-          # Update extra images (e.g. immich-machine-learning)
-          if [ -n "$EXTRA_IMAGES" ]; then
-            for extra in $EXTRA_IMAGES; do
-              sed -i "s|image: ${extra}:${CURRENT}|image: ${extra}:${LATEST}|g" "$FILE"
-            done
-          fi
+            # Get latest version from API
+            if [ "$api" = "codeberg" ]; then
+              LATEST=$(curl -sf \
+                "https://codeberg.org/api/v1/repos/${github_repo}/releases/latest" \
+                | jq -r "$jq_filter")
+            elif [ "$api" = "releases-list" ]; then
+              LATEST=$(gh api "repos/${github_repo}/releases" \
+                --jq "$jq_filter")
+            else
+              LATEST=$(gh api "repos/${github_repo}/releases/latest" \
+                --jq "$jq_filter")
+            fi
 
-          # Update extra files (e.g. docker-socket-proxy in multiple stacks)
-          if [ -n "$EXTRA_FILES" ]; then
-            for ef in $EXTRA_FILES; do
-              sed -i "s|image: ${IMAGE}:${CURRENT}|image: ${IMAGE}:${LATEST}|g" "$ef"
-            done
-          fi
+            echo "${name}: ${CURRENT} → ${LATEST}"
+
+            if [ "$CURRENT" != "$LATEST" ] && [ -n "$LATEST" ] && [ "$LATEST" != "null" ]; then
+              sed -i "s|image: ${image}:${CURRENT}|image: ${image}:${LATEST}|g" "$file"
+
+              if [ -n "$extra_images" ]; then
+                for extra in $extra_images; do
+                  sed -i "s|image: ${extra}:${CURRENT}|image: ${extra}:${LATEST}|g" "$file"
+                done
+              fi
+
+              if [ -n "$extra_files" ]; then
+                for ef in $extra_files; do
+                  sed -i "s|image: ${image}:${CURRENT}|image: ${image}:${LATEST}|g" "$ef"
+                done
+              fi
+
+              BODY="${BODY}- **${name}:** \`${CURRENT}\` → \`${LATEST}\`"$'\n'
+            fi
+          done < <(jq -c '.[]' .github/images.json)
+
+          {
+            echo "body<<EOF"
+            echo "$BODY"
+            echo "EOF"
+          } >> "$GITHUB_OUTPUT"
 
       - name: Create Pull Request
-        if: steps.version.outputs.latest != steps.version.outputs.current
+        if: steps.updates.outputs.body != ''
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.app-token.outputs.token }}
-          commit-message: >-
-            chore(${{ matrix.name }}): update image
-            ${{ steps.version.outputs.current }} →
-            ${{ steps.version.outputs.latest }}
-          branch: chore/update-${{ matrix.name }}-${{ steps.version.outputs.latest }}
-          title: >-
-            chore(${{ matrix.name }}): update to
-            ${{ steps.version.outputs.latest }}
+          commit-message: 'chore(deps): update docker images'
+          branch: chore/update-docker-images
+          title: 'chore(deps): update docker images'
           body: |
-            Automated update of `${{ matrix.image }}` in `${{ matrix.file }}`.
+            Automated update of Docker images.
 
-            **Previous:** `${{ steps.version.outputs.current }}`
-            **New:** `${{ steps.version.outputs.latest }}`
-
-            Release: https://github.com/${{ matrix.github_repo }}/releases/tag/${{ steps.version.outputs.latest }}
+            ${{ steps.updates.outputs.body }}
 
             ---
             *Created by the `update-images` workflow.*
