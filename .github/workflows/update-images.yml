@@ -86,7 +86,11 @@ jobs:
             image: n8nio/n8n
             github_repo: n8n-io/n8n
             file: n8n/docker-compose.yml
-            jq_filter: '.tag_name | ltrimstr("n8n@")'
+            jq_filter: >-
+              [.[] | select(.prerelease == false and
+              (.tag_name | test("^n8n@2\\.")))][0].tag_name
+              | ltrimstr("n8n@")
+            api: releases-list
 
           - name: paperless-ngx
             image: ghcr.io/paperless-ngx/paperless-ngx
@@ -130,6 +134,9 @@ jobs:
             LATEST=$(curl -sf \
               "https://codeberg.org/api/v1/repos/${GITHUB_REPO}/releases/latest" \
               | jq -r "$JQ_FILTER")
+          elif [ "$API" = "releases-list" ]; then
+            LATEST=$(gh api "repos/${GITHUB_REPO}/releases" \
+              --jq "$JQ_FILTER")
           else
             LATEST=$(gh api "repos/${GITHUB_REPO}/releases/latest" \
               --jq "$JQ_FILTER")
