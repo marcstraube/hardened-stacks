@@ -92,9 +92,9 @@ jobs:
         uses: peter-evans/create-pull-request@v8
         with:
           token: ${{ steps.app-token.outputs.token }}
-          commit-message: 'chore(deps): update docker images'
-          branch: chore/update-docker-images
-          title: 'chore(deps): update docker images'
+          commit-message: 'build(deps): update docker images'
+          branch: build/update-docker-images
+          title: 'build(deps): update docker images'
           body: |
             Automated update of Docker images.
 
