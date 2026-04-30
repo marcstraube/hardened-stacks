@@ -111,6 +111,13 @@ jobs:
             jq_filter: .tag_name
 
     steps:
+      - name: Generate app token
+        id: app-token
+        uses: actions/create-github-app-token@v2
+        with:
+          app-id: ${{ secrets.APP_ID }}
+          private-key: ${{ secrets.APP_PRIVATE_KEY }}
+
       - name: Checkout code
         uses: actions/checkout@v6
 
@@ -174,7 +181,7 @@ jobs:
         if: steps.version.outputs.latest != steps.version.outputs.current
         uses: peter-evans/create-pull-request@v8
         with:
-          token: ${{ github.token }}
+          token: ${{ steps.app-token.outputs.token }}
           commit-message: >-
             chore(${{ matrix.name }}): update image
             ${{ steps.version.outputs.current }} →
