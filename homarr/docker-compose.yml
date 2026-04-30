@@ -24,7 +24,7 @@ services:
         max-file: "3"
 
   homarr:
-    image: ghcr.io/homarr-labs/homarr:v1.56.1
+    image: ghcr.io/homarr-labs/homarr:1.59.3
     container_name: homarr
     restart: unless-stopped
     cap_drop:
