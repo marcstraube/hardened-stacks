@@ -3,7 +3,7 @@ name: homarr
 
 services:
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:v0.4.2
+    image: tecnativa/docker-socket-proxy:v0.5.0
     container_name: homarr-socket-proxy
     restart: unless-stopped
     security_opt:
@@ -24,7 +24,7 @@ services:
         max-file: "3"
 
   homarr:
-    image: ghcr.io/homarr-labs/homarr:1.59.3
+    image: ghcr.io/homarr-labs/homarr:1.77.0
     container_name: homarr
     restart: unless-stopped
     cap_drop:
