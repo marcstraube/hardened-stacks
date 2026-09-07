@@ -35,7 +35,7 @@ services:
         max-file: "3"
 
   server:
-    image: ghcr.io/goauthentik/server:2026.2.2
+    image: ghcr.io/goauthentik/server:2026.8.1
     container_name: authentik-server
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -69,7 +69,7 @@ services:
         max-file: "3"
 
   worker:
-    image: ghcr.io/goauthentik/server:2026.2.2
+    image: ghcr.io/goauthentik/server:2026.8.1
     container_name: authentik-worker
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"

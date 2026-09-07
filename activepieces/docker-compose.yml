@@ -62,7 +62,7 @@ services:
         max-file: "3"
 
   activepieces:
-    image: activepieces/activepieces:0.82.1
+    image: activepieces/activepieces:0.90.2
     container_name: activepieces
     restart: unless-stopped
     security_opt:

@@ -35,7 +35,7 @@ services:
         max-file: "3"
 
   forgejo:
-    image: codeberg.org/forgejo/forgejo:15.0.1
+    image: codeberg.org/forgejo/forgejo:16.0.3
     container_name: forgejo
     restart: unless-stopped
     cap_drop:
