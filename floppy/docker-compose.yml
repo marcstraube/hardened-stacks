@@ -1,0 +1,123 @@
+---
+name: floppy
+
+services:
+  postgres:
+    image: postgres:16.16-alpine
+    container_name: floppy-postgres
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    mem_limit: 512m
+    labels:
+      # The official Floppy setup uses Postgres 16: report 16.x minor
+      # releases only; two-part tags cannot be sorted as semver
+      diun.include_tags: '^16\.\d+-alpine$$'
+      diun.max_tags: "100"
+    environment:
+      POSTGRES_DB: floppy
+      POSTGRES_USER: floppy
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+    volumes:
+      - ./postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U floppy"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  redis:
+    image: redis:8.10.1-alpine
+    container_name: floppy-redis
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - SETUID
+      - SETGID
+    mem_limit: 384m
+    # Persist the Celery queues (AOF) and cap the cache; volatile-lru only
+    # evicts keys with a TTL, so queued tasks are never dropped
+    command: redis-server --appendonly yes --save "" --maxmemory 256mb --maxmemory-policy volatile-lru
+    volumes:
+      - ./redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  floppy:
+    image: ghcr.io/dannyvfilms/floppy:26.11.19
+    container_name: floppy
+    restart: unless-stopped
+    # supervisord starts as root and runs the app as PUID/PGID, so
+    # no-new-privileges cannot be set
+    cap_drop:
+      - ALL
+    cap_add:
+      - CHOWN
+      - DAC_OVERRIDE
+      - FOWNER
+      - SETUID
+      - SETGID
+    mem_limit: 1536m
+    # Running Celery tasks get up to 60 s to finish, the web server 30 s
+    stop_grace_period: 150s
+    ports:
+      - "127.0.0.1:${FLOPPY_PORT:-8010}:8000"
+    environment:
+      SECRET: ${FLOPPY_SECRET}
+      URLS: ${FLOPPY_URLS:-http://localhost:8010}
+      # Allow new accounts to sign up; disable after creating your own
+      REGISTRATION: ${FLOPPY_REGISTRATION:-true}
+      # Language of TMDB titles and descriptions (movies, series)
+      TMDB_LANG: ${FLOPPY_TMDB_LANG:-en}
+      ADMIN_ENABLED: "False"
+      DEMO_ACCOUNT_ENABLED: "False"
+      DEBUG: "False"
+      REDIS_URL: redis://redis:6379
+      DB_HOST: postgres
+      DB_PORT: 5432
+      DB_NAME: floppy
+      DB_USER: floppy
+      DB_PASSWORD: ${POSTGRES_PASSWORD}
+      TZ: Europe/Berlin
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+    volumes:
+      # Generated keys and runtime data
+      - ./data:/floppy/db
+      - ./backups:/floppy/backups
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

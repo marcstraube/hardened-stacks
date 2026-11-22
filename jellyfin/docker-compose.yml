@@ -3,7 +3,7 @@ name: jellyfin
 
 services:
   jellyfin:
-    image: jellyfin/jellyfin:10.11.8
+    image: jellyfin/jellyfin:10.11.11
     container_name: jellyfin
     restart: unless-stopped
     security_opt:

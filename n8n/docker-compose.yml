@@ -3,7 +3,7 @@ name: n8n
 
 services:
   postgres:
-    image: postgres:16.10-alpine
+    image: postgres:18.7-alpine
     container_name: n8n-postgres
     restart: unless-stopped
     security_opt:
@@ -17,12 +17,20 @@ services:
       - SETUID
       - SETGID
     mem_limit: 512m
+    labels:
+      # Report minor releases of the running major only (18.x); a major
+      # upgrade needs a dump/restore
+      diun.include_tags: '^18\.\d+-alpine$$'
+      # Two-part tags (16.15) cannot be sorted as semver, so watch all of
+      # them instead of only the newest few
+      diun.max_tags: "100"
     environment:
       POSTGRES_DB: n8n
       POSTGRES_USER: n8n
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./postgres:/var/lib/postgresql/data
+      # Postgres 18+ keeps its data in a versioned subdirectory (18/docker)
+      - ./postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U n8n"]
       interval: 10s
@@ -35,9 +43,13 @@ services:
         max-file: "3"
 
   n8n:
-    image: n8nio/n8n:2.18.5
+    image: n8nio/n8n:2.48.4
     container_name: n8n
     restart: unless-stopped
+    labels:
+      # Beta and stable share the same tag scheme; Diun watches the
+      # "stable" tag instead (diun/images.yml)
+      diun.enable: "false"
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -55,8 +67,18 @@ services:
       N8N_PORT: 5678
       N8N_PROTOCOL: ${N8N_PROTOCOL:-https}
       N8N_PROXY_HOPS: 1
-      WEBHOOK_URL: ${N8N_PROTOCOL:-https}://${N8N_HOSTNAME:-localhost}
+      N8N_WEBHOOK_URL: ${N8N_PROTOCOL:-https}://${N8N_HOSTNAME:-localhost}
       N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+      # Code nodes run in the separate runners container, not in the n8n
+      # process that holds the credentials and the encryption key
+      N8N_RUNNERS_MODE: external
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN}
+      N8N_RUNNERS_BROKER_LISTEN_ADDRESS: 0.0.0.0
+      N8N_RUNNERS_TASK_TIMEOUT: 300
+      # Stricter upcoming defaults, applied now
+      N8N_UNVERIFIED_PACKAGES_ENABLED: "false"
+      N8N_COMPRESSION_NODE_MAX_DECOMPRESSED_SIZE_BYTES: 268435456
+      N8N_COMPRESSION_NODE_MAX_ZIP_ENTRIES: 1000
       N8N_DIAGNOSTICS_ENABLED: "false"
       N8N_VERSION_NOTIFICATIONS_ENABLED: "false"
       GENERIC_TIMEZONE: Europe/Berlin
@@ -66,6 +88,47 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  runners:
+    # Must have the same version as the n8n image
+    image: n8nio/runners:2.48.4
+    container_name: n8n-runners
+    restart: unless-stopped
+    labels:
+      # Beta and stable share the same tag scheme; Diun watches the
+      # "stable" tag instead (diun/images.yml)
+      diun.enable: "false"
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+      - /home/runner:uid=1000,gid=1000
+    mem_limit: 512m
+    # Allowed modules in Code nodes: see README.md
+    # volumes:
+    #   - ./n8n-task-runners.json:/etc/n8n-task-runners.json:ro
+    environment:
+      N8N_RUNNERS_TASK_BROKER_URI: http://n8n:5679
+      N8N_RUNNERS_AUTH_TOKEN: ${N8N_RUNNERS_AUTH_TOKEN}
+      N8N_RUNNERS_AUTO_SHUTDOWN_TIMEOUT: 15
+      N8N_RUNNERS_TASK_TIMEOUT: 300
+      GENERIC_TIMEZONE: Europe/Berlin
+      TZ: Europe/Berlin
+    healthcheck:
+      test: ["CMD", "wget", "-q", "-O", "/dev/null", "http://127.0.0.1:5680/healthz"]
+      interval: 30s
+      timeout: 5s
+      retries: 3
+    depends_on:
+      - n8n
     logging:
       driver: json-file
       options:

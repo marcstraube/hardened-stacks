@@ -6,6 +6,7 @@
 **/work/
 **/certs/
 **/templates/
+**/custom-templates/
 **/redis/
 **/cache/
 **/model-cache/
@@ -16,3 +17,4 @@
 **/export/
 **/consume/
 **/prometheus/data/
+**/n8n-task-runners.json

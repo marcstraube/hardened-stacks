@@ -1,0 +1,41 @@
+---
+name: audiobookshelf
+
+services:
+  audiobookshelf:
+    image: ghcr.io/advplyr/audiobookshelf:2.38.0
+    container_name: audiobookshelf
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    # Runs directly as PUID/PGID (no entrypoint user switch needed)
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      - "127.0.0.1:${AUDIOBOOKSHELF_PORT:-13378}:13378"
+    environment:
+      TZ: Europe/Berlin
+      # Without capabilities, a non-root process cannot bind ports below 1024
+      # (the image default is 80)
+      PORT: 13378
+    volumes:
+      # SQLite database and settings
+      - ./config:/config
+      # Covers, cache, backups and downloaded podcast metadata
+      - ./metadata:/metadata
+      # Audiobook library, read-only (see README for write access)
+      - ${AUDIOBOOKSHELF_MEDIA_PATH:-./audiobooks}:/audiobooks:ro
+      # Podcast episodes are downloaded by Audiobookshelf, so writable
+      - ${AUDIOBOOKSHELF_PODCAST_PATH:-./podcasts}:/podcasts
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:13378/healthcheck"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

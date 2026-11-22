@@ -3,7 +3,7 @@ name: paperless-ngx
 
 services:
   postgres:
-    image: postgres:16.10-alpine
+    image: postgres:18.7-alpine
     container_name: paperless-postgres
     restart: unless-stopped
     security_opt:
@@ -17,12 +17,18 @@ services:
       - SETUID
       - SETGID
     mem_limit: 512m
+    labels:
+      # Report 18.x minor releases only; two-part tags (18.6) cannot be
+      # sorted as semver, so all of them are watched
+      diun.include_tags: '^18\.\d+-alpine$$'
+      diun.max_tags: "100"
     environment:
       POSTGRES_DB: paperless
       POSTGRES_USER: paperless
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
     volumes:
-      - ./postgres:/var/lib/postgresql/data
+      # Postgres 18+ keeps its data in a versioned subdirectory (18/docker)
+      - ./postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U paperless"]
       interval: 10s
@@ -62,9 +68,13 @@ services:
         max-file: "3"
 
   gotenberg:
-    image: gotenberg/gotenberg:8
+    # Gotenberg 9 changed its API; paperless still uses the v8 API
+    image: gotenberg/gotenberg:8.40.0
     container_name: paperless-gotenberg
     restart: unless-stopped
+    labels:
+      # Report 8.x releases only (see the image comment above)
+      diun.include_tags: '^8\.\d+\.\d+$$'
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -73,7 +83,7 @@ services:
     command:
       - gotenberg
       - --chromium-disable-javascript=true
-      - --chromium-allow-list=file:///tmp/.*
+      - --chromium-allow-list=^file:///tmp/.*
     logging:
       driver: json-file
       options:
@@ -81,9 +91,15 @@ services:
         max-file: "3"
 
   tika:
-    image: apache/tika:3.3.0.0
+    # Tika 4 removed endpoints paperless relies on
+    image: apache/tika:3.3.3.1
     container_name: paperless-tika
     restart: unless-stopped
+    labels:
+      # Report 3.x releases only; four-part tags cannot be sorted as
+      # semver, so all of them are watched
+      diun.include_tags: '^3\.\d+\.\d+\.\d+$$'
+      diun.max_tags: "100"
     security_opt:
       - no-new-privileges:true
     cap_drop:
@@ -96,7 +112,7 @@ services:
         max-file: "3"
 
   paperless:
-    image: ghcr.io/paperless-ngx/paperless-ngx:2.20.15
+    image: ghcr.io/paperless-ngx/paperless-ngx:3.5.1
     container_name: paperless
     restart: unless-stopped
     cap_drop:
@@ -112,6 +128,8 @@ services:
       - "127.0.0.1:${PAPERLESS_PORT:-8000}:8000"
     environment:
       PAPERLESS_REDIS: redis://redis:6379
+      # Required since v3 (no longer inferred from PAPERLESS_DBHOST)
+      PAPERLESS_DBENGINE: postgresql
       PAPERLESS_DBHOST: postgres
       PAPERLESS_DBNAME: paperless
       PAPERLESS_DBUSER: paperless
@@ -122,6 +140,9 @@ services:
       PAPERLESS_TIKA_GOTENBERG_ENDPOINT: http://gotenberg:3000
       PAPERLESS_TIKA_ENDPOINT: http://tika:9998
       PAPERLESS_OCR_LANGUAGE: deu+eng
+      # Reject byte-identical files instead of importing them as duplicates
+      # (v3 default: import and mark them)
+      PAPERLESS_CONSUMER_DELETE_DUPLICATES: "true"
       PAPERLESS_TIME_ZONE: Europe/Berlin
     volumes:
       - ./data:/usr/src/paperless/data

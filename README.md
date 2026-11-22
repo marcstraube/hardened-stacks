@@ -16,20 +16,28 @@ consistent security practices out of the box.
 
 ## Stacks
 
-| Stack                             | Description                  | Default Port            | Docs                                                                                                   |
-| --------------------------------- | ---------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
-| [activepieces](activepieces/)     | Workflow automation          | 8080                    | [activepieces.com](https://www.activepieces.com/docs/install/docker)                                   |
-| [adguard-home](adguard-home/)     | DNS ad blocker               | Host network (UI: 3001) | [adguard.com](https://adguard.com/adguard-home/overview.html)                                          |
-| [authentik](authentik/)           | Identity provider / SSO      | 9000                    | [goauthentik.io](https://docs.goauthentik.io/)                                                         |
-| [diun](diun/)                     | Docker image update notifier | 8899                    | [crazymax.dev](https://crazymax.dev/diun/)                                                             |
-| [forgejo](forgejo/)               | Self-hosted Git              | 3003 (HTTP) / 222 (SSH) | [forgejo.org](https://forgejo.org/docs/latest/)                                                        |
-| [homarr](homarr/)                 | Homepage / dashboard         | 7575                    | [homarr.dev](https://homarr.dev/docs/getting-started/)                                                 |
-| [immich](immich/)                 | Photo management             | 2283                    | [immich.app](https://immich.app/docs/overview/introduction)                                            |
-| [jellyfin](jellyfin/)             | Media server                 | 8096                    | [jellyfin.org](https://jellyfin.org/docs/)                                                             |
-| [monitoring](monitoring/)         | Prometheus + Grafana         | 9090 / 3000             | [prometheus.io](https://prometheus.io/docs/) / [grafana.com](https://grafana.com/docs/grafana/latest/) |
-| [n8n](n8n/)                       | Workflow automation          | 5678                    | [docs.n8n.io](https://docs.n8n.io/)                                                                    |
-| [paperless-ngx](paperless-ngx/)   | Document management with OCR | 8000                    | [docs.paperless-ngx.com](https://docs.paperless-ngx.com/)                                              |
-| [uptime-kuma](uptime-kuma/)       | Uptime monitoring            | 3002                    | [github.com](https://github.com/louislam/uptime-kuma/wiki)                                             |
+| Stack                               | Description                  | Default Port            | Docs                                                                                                   |
+| ----------------------------------- | ---------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| [activepieces](activepieces/)       | Workflow automation          | 8080                    | [activepieces.com](https://www.activepieces.com/docs/install/docker)                                   |
+| [adguard-home](adguard-home/)       | DNS ad blocker               | Host network (UI: 3001) | [adguard.com](https://adguard.com/adguard-home/overview.html)                                          |
+| [audiobookshelf](audiobookshelf/)   | Audiobook and podcast server | 13378                   | [audiobookshelf.org](https://www.audiobookshelf.org/docs)                                              |
+| [authentik](authentik/)             | Identity provider / SSO      | 9000                    | [goauthentik.io](https://docs.goauthentik.io/)                                                         |
+| [changedetection](changedetection/) | Website change monitoring    | 5050                    | [github.com](https://github.com/dgtlmoon/changedetection.io/wiki)                                      |
+| [diun](diun/)                       | Docker image update notifier | —                       | [crazymax.dev](https://crazymax.dev/diun/)                                                             |
+| [floppy](floppy/)                   | Media tracker                | 8010                    | [github.com](https://github.com/dannyvfilms/Floppy/wiki)                                               |
+| [forgejo](forgejo/)                 | Self-hosted Git              | 3003 (HTTP) / 222 (SSH) | [forgejo.org](https://forgejo.org/docs/latest/)                                                        |
+| [forgejo-runner](forgejo-runner/)   | Forgejo Actions runner (VM)  | —                       | [forgejo.org](https://forgejo.org/docs/latest/admin/actions/)                                          |
+| [homarr](homarr/)                   | Homepage / dashboard         | 7575                    | [homarr.dev](https://homarr.dev/docs/getting-started/)                                                 |
+| [immich](immich/)                   | Photo management             | 2283                    | [immich.app](https://immich.app/docs/overview/introduction)                                            |
+| [jellyfin](jellyfin/)               | Media server                 | 8096                    | [jellyfin.org](https://jellyfin.org/docs/)                                                             |
+| [karakeep](karakeep/)               | Bookmarks with AI tagging    | 3010                    | [docs.karakeep.app](https://docs.karakeep.app/)                                                        |
+| [kavita](kavita/)                   | Manga, comics and e-books    | 5010                    | [kavitareader.com](https://wiki.kavitareader.com/)                                                     |
+| [monitoring](monitoring/)           | Prometheus + Grafana         | 9090 / 3000             | [prometheus.io](https://prometheus.io/docs/) / [grafana.com](https://grafana.com/docs/grafana/latest/) |
+| [n8n](n8n/)                         | Workflow automation          | 5678                    | [docs.n8n.io](https://docs.n8n.io/)                                                                    |
+| [navidrome](navidrome/)             | Music server (Subsonic)      | 4533                    | [navidrome.org](https://www.navidrome.org/docs/)                                                       |
+| [paperless-ngx](paperless-ngx/)     | Document management with OCR | 8000                    | [docs.paperless-ngx.com](https://docs.paperless-ngx.com/)                                              |
+| [spoolman](spoolman/)               | 3D printer filament manager  | 7912                    | [github.com](https://github.com/Donkie/Spoolman)                                                       |
+| [uptime-kuma](uptime-kuma/)         | Uptime monitoring            | 3002                    | [github.com](https://github.com/louislam/uptime-kuma/wiki)                                             |
 
 ## Usage
 
@@ -59,6 +67,9 @@ If no service is specified, the command applies to all stacks.
 2. Pull the latest images (`docker compose pull`)
 3. Recreate changed containers (`docker compose up -d`)
 
+Stacks with `REMOTE_DOCKER_HOST` in their `.env` are deployed to that Docker host over SSH instead of
+locally (used by [forgejo-runner](forgejo-runner/), which runs in a dedicated VM).
+
 ### Configuration
 
 Each stack has a `.env.example` with configurable ports and secrets:
@@ -80,33 +91,56 @@ All stacks bind to `127.0.0.1` and require a reverse proxy for access.
 
 ### Per-Stack Notes
 
-| Stack         | Proxy entries            | WebSocket    | Timeout |
-| ------------- | ------------------------ | ------------ | ------- |
-| activepieces  | 1                        | Yes          | 300s    |
-| adguard-home  | 1 (UI: 3001)             | Yes          | 300s    |
-| authentik     | 1                        | Yes          | 300s    |
-| diun          | —                        | —            | —       |
-| forgejo       | 1                        | Yes          | 600s    |
-| homarr        | 1                        | Yes          | 300s    |
-| immich        | 1                        | Yes          | 300s    |
-| jellyfin      | 1                        | Yes          | 300s    |
-| monitoring    | 2 (Prometheus + Grafana) | Grafana only | 300s    |
-| n8n           | 1                        | Yes          | 300s    |
-| paperless-ngx | 1                        | Yes          | 300s    |
-| uptime-kuma   | 1                        | Yes          | 300s    |
+| Stack           | Proxy entries            | WebSocket    | Timeout |
+| --------------- | ------------------------ | ------------ | ------- |
+| activepieces    | 1                        | Yes          | 300s    |
+| adguard-home    | 1 (UI: 3001)             | Yes          | 300s    |
+| audiobookshelf  | 1                        | Yes          | 300s    |
+| authentik       | 1                        | Yes          | 300s    |
+| changedetection | 1                        | Yes          | 300s    |
+| diun            | —                        | —            | —       |
+| floppy          | 1                        | Yes          | 300s    |
+| forgejo         | 1                        | Yes          | 600s    |
+| forgejo-runner  | —                        | —            | —       |
+| homarr          | 1                        | Yes          | 300s    |
+| immich          | 1                        | Yes          | 300s    |
+| jellyfin        | 1                        | Yes          | 300s    |
+| karakeep        | 1                        | Yes          | 300s    |
+| kavita          | 1                        | Yes          | 300s    |
+| monitoring      | 2 (Prometheus + Grafana) | Grafana only | 300s    |
+| n8n             | 1                        | Yes          | 300s    |
+| navidrome       | 1                        | Yes          | 300s    |
+| paperless-ngx   | 1                        | Yes          | 300s    |
+| spoolman        | 1                        | Yes          | 300s    |
+| uptime-kuma     | 1                        | Yes          | 300s    |
 
-Diun has no web UI and does not need a reverse proxy entry.
+Diun has no web UI and does not need a reverse proxy entry. The Forgejo runner only makes outgoing
+connections and runs in a separate VM. Spoolman can additionally be bound to the LAN interface
+(`SPOOLMAN_BIND`), so that 3D printers can reach its API directly.
 
 ## Security
 
 All stacks are hardened with:
 
-- Ports bound to `127.0.0.1` only — a reverse proxy is required for access
-- `no-new-privileges` and `cap_drop: ALL` on every container
+- Ports bound to `127.0.0.1` — a reverse proxy is required for access
+- Dropped capabilities (`cap_drop`); only the capabilities an image needs are added back
+- `no-new-privileges` wherever the image allows it
 - Memory limits per container
 - Docker socket access via read-only socket proxy (Diun, Homarr)
 - Secrets in `.env` files with `chmod 600`
 - Pinned image versions, no `:latest` tags
+
+Deliberate exceptions:
+
+- [adguard-home](adguard-home/) uses the host network, because it serves DNS to the LAN.
+- The SSH port of [forgejo](forgejo/) and the API of [spoolman](spoolman/) can be bound to the LAN via `.env`
+  (default: `127.0.0.1`).
+- Images whose entrypoint switches users (e.g. Forgejo, Paperless, Homarr) run without `no-new-privileges`;
+  Immich keeps the capabilities of its official rootless setup (`cap_drop: NET_RAW`).
+- The Docker-in-Docker container of [forgejo-runner](forgejo-runner/) must be privileged and therefore runs in
+  a dedicated VM.
+
+Stack-specific notes are in the `README.md` of each stack directory.
 
 ## Linting
 
@@ -116,12 +150,36 @@ All stacks are hardened with:
 
 Validates all stacks for consistent logging, restart policies, port binding,
 image tags, and `.env.example` completeness. Includes `docker compose config`,
-`yamllint`, and `shellcheck` when available. Also runs as a pre-commit hook.
+`yamllint`, `markdownlint` and `shellcheck` when available. Also runs as a pre-commit hook.
 
-## Image Versions
+## Updates
 
-All images are pinned to specific versions — no `:latest` tags.
-[Diun](diun/) monitors for updates and sends notifications.
+All images are pinned to specific versions — no `:latest` tags. New versions are found in two ways:
+
+- The `update-images` workflow ([.github/images.json](.github/images.json)) opens a pull request with new
+  versions of the main images.
+- [Diun](diun/) watches the tag lists of all running containers and sends notifications, including helper
+  images such as Postgres and Redis.
+
+Before updating a stack:
+
+1. Read the release notes — some applications require intermediate versions (e.g. authentik, Paperless-ngx)
+   and cannot be downgraded afterwards.
+2. Stop the stack and back up its directory, plus a `pg_dump` for stacks with Postgres.
+3. Update the version in `docker-compose.yml` and run `./stacks deploy <stack>`.
+4. Check the logs until migrations have finished.
+
+### Postgres
+
+Each stack uses the Postgres major version its application supports or ships in its official setup. Minor
+versions (e.g. 16.10 → 16.15) are a simple image update. A **major** upgrade (e.g. 16 → 18) requires a dump
+of the database, an empty data directory and a restore — the new version cannot read the old data files.
+
+Since Postgres 18, the official image keeps its data in a versioned subdirectory: the volume must be mounted
+at `/var/lib/postgresql` instead of `/var/lib/postgresql/data`.
+
+Postgres containers carry Diun labels that report new minor releases of their major version only (see
+[diun](diun/README.md#per-container-labels)).
 
 ## Contributing
 

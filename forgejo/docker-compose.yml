@@ -3,7 +3,7 @@ name: forgejo
 
 services:
   postgres:
-    image: postgres:16.10-alpine
+    image: postgres:16.16-alpine
     container_name: forgejo-postgres
     restart: unless-stopped
     security_opt:
@@ -17,6 +17,12 @@ services:
       - SETUID
       - SETGID
     mem_limit: 512m
+    labels:
+      # Forgejo CI tests Postgres 16: report 16.x minor releases only
+      diun.include_tags: '^16\.\d+-alpine$$'
+      # Two-part tags (16.15) cannot be sorted as semver, so watch all of
+      # them instead of only the newest few
+      diun.max_tags: "100"
     environment:
       POSTGRES_DB: forgejo
       POSTGRES_USER: forgejo
@@ -35,7 +41,7 @@ services:
         max-file: "3"
 
   forgejo:
-    image: codeberg.org/forgejo/forgejo:15.0.1
+    image: codeberg.org/forgejo/forgejo:17.0.2
     container_name: forgejo
     restart: unless-stopped
     cap_drop:
@@ -47,11 +53,14 @@ services:
       - NET_BIND_SERVICE
       - SETUID
       - SETGID
+      # Required by the built-in SSH server (privilege separation)
       - SYS_CHROOT
     mem_limit: 512m
     ports:
       - "127.0.0.1:${FORGEJO_HTTP_PORT:-3003}:3000"
-      - "127.0.0.1:${FORGEJO_SSH_PORT:-222}:22"
+      # Git over SSH cannot go through an HTTP reverse proxy. Set
+      # FORGEJO_SSH_BIND=0.0.0.0 to reach it from the LAN.
+      - "${FORGEJO_SSH_BIND:-127.0.0.1}:${FORGEJO_SSH_PORT:-222}:22"
     environment:
       USER_UID: ${PUID:-1000}
       USER_GID: ${PGID:-1000}
@@ -64,6 +73,9 @@ services:
       FORGEJO__server__DOMAIN: ${FORGEJO_DOMAIN:-localhost}
       FORGEJO__server__SSH_DOMAIN: ${FORGEJO_DOMAIN:-localhost}
       FORGEJO__server__SSH_PORT: ${FORGEJO_SSH_PORT:-222}
+      FORGEJO__actions__ENABLED: "true"
+      # Allow creating a repository by pushing to a new URL
+      FORGEJO__repository__ENABLE_PUSH_CREATE_USER: ${FORGEJO_ENABLE_PUSH_CREATE_USER:-false}
     volumes:
       - ./data:/data
     depends_on:
