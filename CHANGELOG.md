@@ -1,5 +1,16 @@
 # Changelog
 
+## [2.0.0](https://github.com/marcstraube/hardened-stacks/compare/v1.0.2...v2.0.0) (2026-11-22)
+
+
+### ⚠ BREAKING CHANGES
+
+* immich, paperless-ngx and n8n move to Postgres 18. Dump the database before updating and restore it into the new data directory (mounted at /var/lib/postgresql). homarr v2 and immich v3 migrate their data on first start; create a backup first.
+
+### Features
+
+* new stacks, major updates and stack documentation ([#21](https://github.com/marcstraube/hardened-stacks/issues/21)) ([028e5d0](https://github.com/marcstraube/hardened-stacks/commit/028e5d0a10015ff959af60ebfb755308cd5ce182))
+
 ## [1.0.2](https://github.com/marcstraube/hardened-stacks/compare/v1.0.1...v1.0.2) (2026-10-31)
 
 
