@@ -52,6 +52,10 @@ jobs:
               LATEST=$(curl -sf \
                 "https://codeberg.org/api/v1/repos/${github_repo}/releases/latest" \
                 | jq -r "$jq_filter")
+            elif [ "$api" = "forgejo" ]; then
+              LATEST=$(curl -sf \
+                "https://code.forgejo.org/api/v1/repos/${github_repo}/releases/latest" \
+                | jq -r "$jq_filter")
             elif [ "$api" = "releases-list" ]; then
               LATEST=$(gh api "repos/${github_repo}/releases" \
                 --jq "$jq_filter")

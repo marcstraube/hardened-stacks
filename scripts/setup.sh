@@ -65,16 +65,24 @@ setup_dirs() {
   case "$service" in
     activepieces) dirs=(postgres redis cache) ;;
     adguard-home) dirs=(work conf) ;;
-    authentik)    dirs=(postgres media templates certs) ;;
+    audiobookshelf) dirs=(config metadata audiobooks podcasts) ;;
+    authentik)    dirs=(postgres data/media custom-templates certs) ;;
     monitoring)   dirs=(prometheus/data grafana/data) ;;
     n8n)          dirs=(postgres data) ;;
     uptime-kuma)  dirs=(data) ;;
     diun)          dirs=(data) ;;
+    floppy)        dirs=(postgres redis data backups) ;;
     forgejo)       dirs=(postgres data) ;;
+    forgejo-runner) dirs=() ;;  # named volumes in the runner VM
     homarr)        dirs=(data) ;;
     immich)        dirs=(postgres upload external model-cache) ;;
+    kavita)        dirs=(config library) ;;
+    navidrome)     dirs=(data music) ;;
+    changedetection) dirs=(data) ;;
+    karakeep)      dirs=(data meilisearch) ;;
     jellyfin)      dirs=(config cache media) ;;
     paperless-ngx) dirs=(postgres redis data media export consume) ;;
+    spoolman)      dirs=(data) ;;
   esac
 
   for d in "${dirs[@]}"; do
@@ -98,7 +106,7 @@ setup_service() {
   echo ""
 }
 
-services=(activepieces adguard-home authentik diun forgejo homarr immich jellyfin monitoring n8n paperless-ngx uptime-kuma)
+services=(activepieces adguard-home audiobookshelf authentik changedetection diun floppy forgejo forgejo-runner homarr immich jellyfin karakeep kavita monitoring n8n navidrome paperless-ngx spoolman uptime-kuma)
 
 if [[ $# -gt 0 ]]; then
   for arg in "$@"; do

@@ -1,0 +1,114 @@
+---
+name: karakeep
+
+services:
+  meilisearch:
+    image: getmeili/meilisearch:v1.57.0
+    container_name: karakeep-meilisearch
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    user: "${PUID:-1000}:${PGID:-1000}"
+    environment:
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      MEILI_NO_ANALYTICS: "true"
+      MEILI_ENV: production
+      # Upgrade the index in place on Meilisearch updates (no dump/restore)
+      MEILI_UPGRADE_DB: "true"
+    volumes:
+      - ./meilisearch:/meili_data
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:7700/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  chrome:
+    # Headless Chrome for crawling pages and screenshots
+    image: ghcr.io/karakeep-app/karakeep-chrome:157.0.8103.38-r1
+    container_name: karakeep-chrome
+    restart: unless-stopped
+    init: true
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    # Runs as nobody (set in the image); Chrome's own sandbox is disabled
+    # because it needs user namespaces, the container is the sandbox
+    command:
+      - --disable-gpu
+      - --disable-dev-shm-usage
+      - --hide-scrollbars
+      - --disable-blink-features=AutomationControlled
+      - --window-size=1440,900
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  karakeep:
+    image: ghcr.io/karakeep-app/karakeep:0.35.0
+    container_name: karakeep
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    user: "${PUID:-1000}:${PGID:-1000}"
+    # s6-overlay requires /run to belong to the running user, and Next.js
+    # caches optimized images; the image prepares both for uid 1000 only
+    tmpfs:
+      - /run:exec,uid=${PUID:-1000},gid=${PGID:-1000},mode=0755
+      - /app/apps/web/.next/cache:uid=${PUID:-1000},gid=${PGID:-1000},mode=0755,size=256m
+    ports:
+      - "127.0.0.1:${KARAKEEP_PORT:-3010}:3000"
+    environment:
+      TZ: Europe/Berlin
+      DATA_DIR: /data
+      NEXTAUTH_URL: ${KARAKEEP_URL:-http://localhost:3010}
+      NEXTAUTH_SECRET: ${KARAKEEP_SECRET}
+      MEILI_ADDR: http://meilisearch:7700
+      MEILI_MASTER_KEY: ${MEILI_MASTER_KEY}
+      BROWSER_WEB_URL: http://chrome:9222
+      # Set to true after creating your account
+      DISABLE_SIGNUPS: ${KARAKEEP_DISABLE_SIGNUPS:-false}
+      DISABLE_NEW_RELEASE_CHECK: "true"
+      # AI tagging via an OpenAI-compatible API (empty key = no AI features)
+      OPENAI_API_KEY: ${KARAKEEP_AI_API_KEY:-}
+      OPENAI_BASE_URL: ${KARAKEEP_AI_BASE_URL:-}
+      INFERENCE_TEXT_MODEL: ${KARAKEEP_AI_TEXT_MODEL:-gpt-4o-mini}
+      INFERENCE_IMAGE_MODEL: ${KARAKEEP_AI_IMAGE_MODEL:-gpt-4o-mini}
+      INFERENCE_LANG: ${KARAKEEP_AI_LANG:-english}
+      INFERENCE_CONTEXT_LENGTH: 4096
+      # Text recognition in images and PDFs
+      OCR_LANGS: ${KARAKEEP_OCR_LANGS:-eng}
+    volumes:
+      # SQLite database, assets and screenshots
+      - ./data:/data
+    depends_on:
+      meilisearch:
+        condition: service_healthy
+      chrome:
+        condition: service_started
+    healthcheck:
+      test: ["CMD", "wget", "-qO-", "http://localhost:3000/api/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

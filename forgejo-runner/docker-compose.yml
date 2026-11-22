@@ -1,0 +1,117 @@
+---
+name: forgejo-runner
+
+# Runs Forgejo Actions jobs. This stack must run inside a dedicated VM, never on
+# the host that runs Forgejo or other stacks. It is deployed remotely over SSH
+# (REMOTE_DOCKER_HOST in .env), so it uses no bind mounts — only named volumes
+# that live in the VM. See README.md in this directory.
+
+services:
+  docker:
+    image: docker:29.9.3-dind
+    container_name: forgejo-runner-docker
+    hostname: docker
+    restart: unless-stopped
+    # Docker-in-Docker requires privileged mode. This is the one deliberate
+    # exception to the hardening rules: the VM is the security boundary.
+    privileged: true
+    mem_limit: ${DOCKER_MEM_LIMIT:-3g}
+    environment:
+      DOCKER_TLS_CERTDIR: /certs
+    volumes:
+      - certs:/certs
+      - docker:/var/lib/docker
+    healthcheck:
+      test: ["CMD-SHELL", "DOCKER_HOST=unix:///var/run/docker.sock docker info >/dev/null 2>&1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  runner:
+    image: data.forgejo.org/forgejo/runner:13.2.1
+    container_name: forgejo-runner
+    hostname: runner
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    read_only: true
+    tmpfs:
+      - /tmp
+    mem_limit: 256m
+    environment:
+      DOCKER_HOST: tcp://docker:2376
+      DOCKER_TLS_VERIFY: "1"
+      DOCKER_CERT_PATH: /certs/client
+      FORGEJO_URL: ${FORGEJO_URL}
+      RUNNER_UUID: ${RUNNER_UUID}
+      RUNNER_TOKEN: ${RUNNER_TOKEN}
+      RUNNER_CAPACITY: ${RUNNER_CAPACITY:-1}
+    volumes:
+      # Only the client certificates are readable for UID 1000; CA and server
+      # keys stay private to the docker container (mode 0600, root).
+      - certs:/certs:ro
+      - data:/data
+    entrypoint: ["/usr/bin/dumb-init", "--", "/bin/sh", "-ec"]
+    # The config is rendered into the tmpfs at every start, so the token never
+    # touches a disk. Reference: forgejo-runner generate-config
+    command:
+      - |
+        : "$${FORGEJO_URL:?FORGEJO_URL is not set in .env}"
+        : "$${RUNNER_UUID:?RUNNER_UUID is not set in .env}"
+        : "$${RUNNER_TOKEN:?RUNNER_TOKEN is not set in .env}"
+        cat > /tmp/config.yml <<EOF
+        log:
+          level: info
+          job_level: info
+        runner:
+          capacity: $${RUNNER_CAPACITY}
+          timeout: 3h
+          shutdown_timeout: 3h
+          fetch_timeout: 30s
+          fetch_interval: 2s
+          report_interval: 1s
+          # Workflows select a label with "runs-on: <label>"
+          labels:
+            - "docker:docker://node:24-trixie"
+            - "ubuntu-latest:docker://node:24-trixie"
+        cache:
+          enabled: true
+          dir: /data/cache
+          # Job containers reach the runner's cache proxy by its hostname
+          host: runner
+        container:
+          # Jobs share the network namespace of the docker container, so they
+          # can resolve the cache proxy. They get no access to the Docker
+          # daemon itself (no client certificates, docker_host disabled).
+          network: host
+          privileged: false
+          valid_volumes: []
+          docker_host: "-"
+        server:
+          connections:
+            forgejo:
+              url: $${FORGEJO_URL}
+              uuid: $${RUNNER_UUID}
+              token: $${RUNNER_TOKEN}
+        EOF
+        exec forgejo-runner --config /tmp/config.yml daemon
+    depends_on:
+      docker:
+        condition: service_healthy
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+volumes:
+  certs:
+  docker:
+  data:

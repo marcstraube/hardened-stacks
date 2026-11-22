@@ -51,16 +51,17 @@ pre-commit run --all-files       # All pre-commit hooks
 1. Create a directory with `docker-compose.yml` and `.env.example`
 2. Follow the existing patterns:
    - Ports bound to `127.0.0.1` via `.env` variable
-   - `security_opt: [no-new-privileges:true]`
-   - `cap_drop: [ALL]` on every container
+   - `security_opt: [no-new-privileges:true]` (unless the entrypoint must switch users)
+   - `cap_drop: [ALL]` on every container, adding back only required capabilities
    - `mem_limit` on every container
    - Logging with `json-file` driver
    - `restart: unless-stopped`
    - Pinned image versions, no `:latest`
    - Secrets as `changeme` with `openssl` generation comment
-3. Add the service to `scripts/setup.sh` (dirs list + services list)
-4. Add a matrix entry in `.github/workflows/update-images.yml`
-5. Update `README.md`
+3. Add the service to `scripts/setup.sh` (dirs list + services list) and `scripts/deploy.sh` (services list)
+4. Add an entry to `.github/images.json` for automatic version updates
+5. Update `README.md` (stack and reverse proxy tables) and add a `README.md` in the stack directory for
+   anything that is not obvious from the compose file
 6. Run `./stacks lint` to verify
 
 ## Pull Request Process

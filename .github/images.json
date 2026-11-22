@@ -14,6 +14,13 @@
     "jq_filter": ".tag_name | ltrimstr(\"v\")"
   },
   {
+    "name": "audiobookshelf",
+    "image": "ghcr.io/advplyr/audiobookshelf",
+    "github_repo": "advplyr/audiobookshelf",
+    "file": "audiobookshelf/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"v\")"
+  },
+  {
     "name": "authentik",
     "image": "ghcr.io/goauthentik/server",
     "github_repo": "goauthentik/authentik",
@@ -21,11 +28,25 @@
     "jq_filter": ".tag_name | ltrimstr(\"version/\")"
   },
   {
+    "name": "changedetection",
+    "image": "ghcr.io/dgtlmoon/changedetection.io",
+    "github_repo": "dgtlmoon/changedetection.io",
+    "file": "changedetection/docker-compose.yml",
+    "jq_filter": ".tag_name"
+  },
+  {
     "name": "diun",
     "image": "crazymax/diun",
     "github_repo": "crazy-max/diun",
     "file": "diun/docker-compose.yml",
     "jq_filter": ".tag_name | ltrimstr(\"v\")"
+  },
+  {
+    "name": "docker-dind",
+    "image": "docker",
+    "github_repo": "moby/moby",
+    "file": "forgejo-runner/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"docker-v\") + \"-dind\""
   },
   {
     "name": "docker-socket-proxy",
@@ -36,12 +57,27 @@
     "extra_files": "homarr/docker-compose.yml"
   },
   {
+    "name": "floppy",
+    "image": "ghcr.io/dannyvfilms/floppy",
+    "github_repo": "dannyvfilms/Floppy",
+    "file": "floppy/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"v\")"
+  },
+  {
     "name": "forgejo",
     "image": "codeberg.org/forgejo/forgejo",
     "github_repo": "forgejo/forgejo",
     "file": "forgejo/docker-compose.yml",
     "jq_filter": ".tag_name | ltrimstr(\"v\")",
     "api": "codeberg"
+  },
+  {
+    "name": "forgejo-runner",
+    "image": "data.forgejo.org/forgejo/runner",
+    "github_repo": "forgejo/runner",
+    "file": "forgejo-runner/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"v\")",
+    "api": "forgejo"
   },
   {
     "name": "grafana",
@@ -55,7 +91,7 @@
     "image": "ghcr.io/homarr-labs/homarr",
     "github_repo": "homarr-labs/homarr",
     "file": "homarr/docker-compose.yml",
-    "jq_filter": ".tag_name | ltrimstr(\"v\")"
+    "jq_filter": ".tag_name"
   },
   {
     "name": "immich",
@@ -73,12 +109,41 @@
     "jq_filter": ".tag_name | ltrimstr(\"v\")"
   },
   {
+    "name": "karakeep",
+    "image": "ghcr.io/karakeep-app/karakeep",
+    "github_repo": "karakeep-app/karakeep",
+    "file": "karakeep/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"v\")"
+  },
+  {
+    "name": "kavita",
+    "image": "jvmilazz0/kavita",
+    "github_repo": "Kareadita/Kavita",
+    "file": "kavita/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"v\") | split(\".\")[0:3] | join(\".\")"
+  },
+  {
+    "name": "meilisearch",
+    "image": "getmeili/meilisearch",
+    "github_repo": "meilisearch/meilisearch",
+    "file": "karakeep/docker-compose.yml",
+    "jq_filter": ".tag_name"
+  },
+  {
     "name": "n8n",
     "image": "n8nio/n8n",
+    "extra_images": "n8nio/runners",
     "github_repo": "n8n-io/n8n",
     "file": "n8n/docker-compose.yml",
     "jq_filter": "[.[] | select(.prerelease == false and (.tag_name | test(\"^n8n@2\\\\.\")))][0].tag_name | ltrimstr(\"n8n@\")",
     "api": "releases-list"
+  },
+  {
+    "name": "navidrome",
+    "image": "deluan/navidrome",
+    "github_repo": "navidrome/navidrome",
+    "file": "navidrome/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"v\")"
   },
   {
     "name": "paperless-ngx",
@@ -93,6 +158,13 @@
     "github_repo": "prometheus/prometheus",
     "file": "monitoring/docker-compose.yml",
     "jq_filter": ".tag_name"
+  },
+  {
+    "name": "spoolman",
+    "image": "ghcr.io/donkie/spoolman",
+    "github_repo": "Donkie/Spoolman",
+    "file": "spoolman/docker-compose.yml",
+    "jq_filter": ".tag_name | ltrimstr(\"v\")"
   },
   {
     "name": "uptime-kuma",

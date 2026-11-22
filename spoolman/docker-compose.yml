@@ -1,0 +1,49 @@
+---
+name: spoolman
+
+services:
+  spoolman:
+    image: ghcr.io/donkie/spoolman:0.27.1
+    container_name: spoolman
+    hostname: spoolman
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    cap_add:
+      # The entrypoint starts as root and switches to PUID/PGID via gosu
+      - SETUID
+      - SETGID
+    mem_limit: 256m
+    ports:
+      # 3D printers (Moonraker/Klipper) talk to the API directly, so the port
+      # can be bound to the LAN interface instead of 127.0.0.1 via
+      # SPOOLMAN_BIND (e.g. the NAS IP).
+      - "${SPOOLMAN_BIND:-127.0.0.1}:${SPOOLMAN_PORT:-7912}:8000"
+    environment:
+      PUID: ${PUID:-1000}
+      PGID: ${PGID:-1000}
+      TZ: Europe/Berlin
+      # Trust X-Forwarded-* headers from the reverse proxy
+      FORWARDED_ALLOW_IPS: "*"
+      # Public URL of the web UI when served through the reverse proxy
+      SPOOLMAN_CORS_ORIGIN: ${SPOOLMAN_CORS_ORIGIN:-}
+    volumes:
+      # SQLite database and nightly backups
+      - ./data:/home/app/.local/share/spoolman
+    healthcheck:
+      # The image has no wget/curl, only Python
+      test:
+        - CMD
+        - python3
+        - -c
+        - "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/v1/health', timeout=5)"
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

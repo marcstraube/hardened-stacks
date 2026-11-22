@@ -1,0 +1,36 @@
+---
+name: kavita
+
+services:
+  kavita:
+    # Kavita re-publishes hotfixes (e.g. v0.9.1.4) under the minor tag
+    image: jvmilazz0/kavita:0.9.1
+    container_name: kavita
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 1g
+    # Runs directly as PUID/PGID (the image's entrypoint does no user switch)
+    user: "${PUID:-1000}:${PGID:-1000}"
+    ports:
+      - "127.0.0.1:${KAVITA_PORT:-5010}:5000"
+    environment:
+      TZ: Europe/Berlin
+    volumes:
+      # Database, covers, cache, logs and appsettings.json
+      - ./config:/kavita/config
+      # Comic / manga / book library, read-only (see README for write access)
+      - ${KAVITA_MEDIA_PATH:-./library}:/library:ro
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:5000/api/health"]
+      interval: 30s
+      timeout: 15s
+      retries: 3
+      start_period: 120s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"
