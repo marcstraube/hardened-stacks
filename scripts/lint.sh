@@ -67,24 +67,33 @@ for dir in "$ROOT_DIR"/*/; do
   fi
 
   # 6. Check security hardening
+  # Privileged containers (e.g. Docker-in-Docker) get all capabilities anyway,
+  # so cap_drop/no-new-privileges would be meaningless there. They are
+  # excluded from these checks but always reported as a warning.
+  priv_count=$(grep -c 'privileged: true' "$compose" || true)
+  hard_count=$((svc_count - priv_count))
+  if [[ "$priv_count" -gt 0 ]]; then
+    warn "$priv_count privileged container(s) — only run in an isolated VM"
+  fi
+
   sec_count=$(grep -c 'no-new-privileges' "$compose" || true)
-  if [[ "$sec_count" -lt "$svc_count" ]]; then
+  if [[ "$sec_count" -lt "$hard_count" ]]; then
     # Not an error if cap_drop is set instead (some containers need privilege switching)
     cap_check=$(grep -c 'cap_drop:' "$compose" || true)
-    if [[ "$cap_check" -lt "$svc_count" ]]; then
+    if [[ "$cap_check" -lt "$hard_count" ]]; then
       err "no-new-privileges or cap_drop missing on some container(s)"
     else
-      ok "hardening via cap_drop (no-new-privileges on $sec_count/$svc_count)"
+      ok "hardening via cap_drop (no-new-privileges on $sec_count/$hard_count)"
     fi
   else
-    ok "no-new-privileges on all containers"
+    ok "no-new-privileges on all unprivileged containers"
   fi
 
   cap_count=$(grep -c 'cap_drop:' "$compose" || true)
-  if [[ "$cap_count" -lt "$svc_count" ]]; then
-    err "cap_drop missing on $((svc_count - cap_count))/$svc_count container(s)"
+  if [[ "$cap_count" -lt "$hard_count" ]]; then
+    err "cap_drop missing on $((hard_count - cap_count))/$hard_count container(s)"
   else
-    ok "cap_drop on all containers"
+    ok "cap_drop on all unprivileged containers"
   fi
 
   mem_count=$(grep -c 'mem_limit:' "$compose" || true)
@@ -101,14 +110,17 @@ for dir in "$ROOT_DIR"/*/; do
 
   # 8. Check volume dirs listed in setup.sh match compose mounts
   # Extract host-side relative volume mounts from compose
-  compose_dirs=$(grep -oP '\- \./\K[^:]+' "$compose" | grep '/' | sed 's|/.*||' | sort -u || true)
+  # (commented-out lines are ignored)
+  compose_dirs=$(grep -v '^\s*#' "$compose" | grep -oP '\- \./\K[^:]+' | grep '/' | sed 's|/.*||' | sort -u || true)
   compose_dirs+=$'\n'
-  compose_dirs+=$(grep -oP '\- \./\K[^:/]+' "$compose" | sort -u || true)
+  compose_dirs+=$(grep -v '^\s*#' "$compose" | grep -oP '\- \./\K[^:/]+' | sort -u || true)
   compose_dirs=$(echo "$compose_dirs" | sort -u | grep -v '^$' || true)
 
   if [[ -n "$compose_dirs" ]]; then
     setup_dirs=$(grep -A1 "${service})" "$ROOT_DIR/scripts/setup.sh" | grep -oP 'dirs=\(\K[^)]+' | tr ' ' '\n' | sort -u || true)
     for d in $compose_dirs; do
+      # Files shipped with the repo (e.g. config templates) need no setup
+      [[ -f "$dir/$d" ]] && continue
       if [[ -n "$setup_dirs" ]] && ! echo "$setup_dirs" | grep -q "^${d}\(/\|$\)"; then
         warn "volume ./$d mounted in compose but not created by setup.sh"
       fi
@@ -166,14 +178,16 @@ echo ""
 
 # Lint markdown files
 echo "[markdown]"
+md_files=$(find "$ROOT_DIR" -name '*.md' -not -path '*/.git/*' -not -name 'CHANGELOG.md' | sort)
+
 if command -v markdownlint-cli2 &>/dev/null; then
-  if markdownlint-cli2 "$ROOT_DIR"/**/*.md >/dev/null 2>&1; then
+  if markdownlint-cli2 --config "$ROOT_DIR/.markdownlint.yml" $md_files >/dev/null 2>&1; then
     ok "all markdown files pass markdownlint"
   else
     err "markdownlint found issues"
   fi
 elif command -v markdownlint &>/dev/null; then
-  if markdownlint "$ROOT_DIR"/**/*.md >/dev/null 2>&1; then
+  if markdownlint --config "$ROOT_DIR/.markdownlint.yml" $md_files >/dev/null 2>&1; then
     ok "all markdown files pass markdownlint"
   else
     err "markdownlint found issues"
