@@ -3,7 +3,10 @@ name: activepieces
 
 services:
   postgres:
-    image: postgres:16.10-alpine
+    # Postgres 16 with the pgvector extension, used for the knowledge base and
+    # the semantic tool search of AI agents. Without these features, plain
+    # postgres:16-alpine works as well (switching requires a dump/restore).
+    image: pgvector/pgvector:0.8.7-pg16-trixie
     container_name: activepieces-postgres
     restart: unless-stopped
     security_opt:
@@ -16,7 +19,12 @@ services:
       - FOWNER
       - SETUID
       - SETGID
-    mem_limit: 512m
+    # Headroom for building vector indexes (pgvector)
+    mem_limit: 1g
+    labels:
+      # Activepieces only supports Postgres 14/16: report pgvector releases
+      # for Postgres 16 only
+      diun.include_tags: '^\d+\.\d+\.\d+-pg16-trixie$$'
     environment:
       POSTGRES_DB: activepieces
       POSTGRES_USER: activepieces
@@ -62,7 +70,7 @@ services:
         max-file: "3"
 
   activepieces:
-    image: activepieces/activepieces:0.82.1
+    image: activepieces/activepieces:0.93.0
     container_name: activepieces
     restart: unless-stopped
     security_opt:
@@ -78,7 +86,8 @@ services:
       - KILL
       - SYS_CHROOT
       - NET_BIND_SERVICE
-    mem_limit: 1g
+    # The worker runs up to 5 flows in parallel, each in its own process
+    mem_limit: 2g
     ports:
       - "127.0.0.1:${ACTIVEPIECES_PORT:-8080}:80"
     environment:

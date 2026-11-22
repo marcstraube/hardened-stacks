@@ -24,7 +24,7 @@ services:
         max-file: "3"
 
   diun:
-    image: crazymax/diun:4.31.0
+    image: crazymax/diun:4.34.0
     container_name: diun
     restart: unless-stopped
     security_opt:
@@ -39,18 +39,30 @@ services:
       - SETGID
     mem_limit: 256m
     command: serve
-    ports:
-      - "127.0.0.1:${DIUN_PORT:-8899}:8899"
     env_file:
       - .env
     environment:
       TZ: Europe/Berlin
       DIUN_WATCH_SCHEDULE: ${DIUN_WATCH_SCHEDULE:-0 6 * * *}
+      # Few parallel checks, so the burst of DNS queries stays below the
+      # rate limit of a local resolver (e.g. AdGuard Home: 20 queries/s)
+      DIUN_WATCH_WORKERS: "2"
       DIUN_PROVIDERS_DOCKER: "true"
       DIUN_PROVIDERS_DOCKER_ENDPOINT: tcp://docker-socket-proxy:2375
       DIUN_PROVIDERS_DOCKER_WATCHBYDEFAULT: "true"
+      # Watch the tag list of each image instead of only the digest of the
+      # running tag, so pinned versions (e.g. 2.17.2) report newer releases.
+      # Only full version tags (1.2.3 / v1.2.3) count, so floating tags like
+      # 17.0 do not duplicate every release; the newest few are compared.
+      DIUN_DEFAULTS_WATCHMODE: all
+      DIUN_DEFAULTS_SORTTAGS: semver
+      DIUN_DEFAULTS_MAXTAGS: ${DIUN_MAXTAGS:-5}
+      DIUN_DEFAULTS_INCLUDETAGS: '^v?\d+\.\d+\.\d+$$'
+      # Additional images that are not running as containers (images.yml)
+      DIUN_PROVIDERS_FILE_FILENAME: /etc/diun/images.yml
     volumes:
       - ./data:/data
+      - ./images.yml:/etc/diun/images.yml:ro
     depends_on:
       - docker-socket-proxy
     logging:

@@ -24,7 +24,7 @@ services:
         max-file: "3"
 
   homarr:
-    image: ghcr.io/homarr-labs/homarr:1.59.3
+    image: ghcr.io/homarr-labs/homarr:v2.14.0
     container_name: homarr
     restart: unless-stopped
     cap_drop:
@@ -37,10 +37,16 @@ services:
       - SETGID
     mem_limit: 512m
     ports:
-      - "127.0.0.1:${HOMARR_PORT:-7575}:3000"
+      # 7575 is homarr's built-in proxy (UI + websockets), 3000 only the app
+      - "127.0.0.1:${HOMARR_PORT:-7575}:7575"
     environment:
       SECRET_ENCRYPTION_KEY: ${SECRET_ENCRYPTION_KEY}
-      DOCKER_HOST: tcp://docker-socket-proxy:2375
+      # Read-only Docker access through the socket proxy (POST=0 disables
+      # the start/stop buttons on app tiles)
+      DOCKER_HOSTNAMES: docker-socket-proxy
+      DOCKER_PORTS: "2375"
+      # Resolve the socket proxy freshly, its IP changes when it is recreated
+      ENABLE_DNS_CACHING: "false"
       DISABLE_ANALYTICS: "true"
       NEXT_TELEMETRY_DISABLED: 1
       TZ: Europe/Berlin

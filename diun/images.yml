@@ -1,0 +1,9 @@
+---
+# Images watched in addition to the running containers (file provider).
+# watch_mode: tag = only the digest of this tag is compared.
+
+# n8n tags beta releases with plain version numbers (2.48.x), so the tag
+# list cannot tell beta from stable. The "stable" tag only moves on stable
+# releases; the n8n containers themselves are excluded (diun.enable=false).
+- name: docker.io/n8nio/n8n:stable
+  watch_mode: tag

@@ -3,7 +3,7 @@ name: immich
 
 services:
   postgres:
-    image: ghcr.io/immich-app/postgres:14-vectorchord0.4.3-pgvectors0.2.0
+    image: ghcr.io/immich-app/postgres:18-vectorchord1.1.1-pgvector0.8.7
     container_name: immich-postgres
     restart: unless-stopped
     security_opt:
@@ -16,14 +16,24 @@ services:
       - FOWNER
       - SETUID
       - SETGID
-    mem_limit: 1g
+    # Immich requires at least 2 GB for Postgres when limits are used
+    mem_limit: 2g
+    shm_size: 128mb
+    labels:
+      # Report new VectorChord/pgvector builds for Postgres 18 only; the tags
+      # are not semver, so all of them are watched
+      diun.include_tags: '^18-vectorchord\d+\.\d+\.\d+-pgvector\d+\.\d+\.\d+$$'
+      diun.max_tags: "100"
     environment:
       POSTGRES_DB: immich
       POSTGRES_USER: immich
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
       POSTGRES_INITDB_ARGS: "--data-checksums"
+      # Tunes Postgres for the disk type (SSD or HDD)
+      DB_STORAGE_TYPE: HDD
     volumes:
-      - ./postgres:/var/lib/postgresql/data
+      # Postgres 18+ keeps its data in a versioned subdirectory (18/docker)
+      - ./postgres:/var/lib/postgresql
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U immich"]
       interval: 10s
@@ -61,7 +71,7 @@ services:
         max-file: "3"
 
   immich-server:
-    image: ghcr.io/immich-app/immich-server:v2.7.5
+    image: ghcr.io/immich-app/immich-server:v3.4.2
     container_name: immich-server
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
@@ -78,10 +88,9 @@ services:
       DB_USERNAME: immich
       DB_PASSWORD: ${POSTGRES_PASSWORD}
       REDIS_HOSTNAME: redis
-      IMMICH_TELEMETRY_EXCLUDE: all
       TZ: Europe/Berlin
     volumes:
-      - ${IMMICH_UPLOAD_PATH:-./upload}:/usr/src/app/upload
+      - ${IMMICH_UPLOAD_PATH:-./upload}:/data
       - ${IMMICH_EXTERNAL_PATH:-./external}:/usr/src/app/external:ro
     depends_on:
       postgres:
@@ -95,7 +104,7 @@ services:
         max-file: "3"
 
   immich-machine-learning:
-    image: ghcr.io/immich-app/immich-machine-learning:v2.7.5
+    image: ghcr.io/immich-app/immich-machine-learning:v3.4.2
     container_name: immich-machine-learning
     restart: unless-stopped
     user: "${PUID:-1000}:${PGID:-1000}"
