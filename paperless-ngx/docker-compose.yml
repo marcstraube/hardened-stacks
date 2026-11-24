@@ -41,7 +41,7 @@ services:
         max-file: "3"
 
   redis:
-    image: redis:7.4.8-alpine
+    image: redis:7.4.12-alpine
     container_name: paperless-redis
     restart: unless-stopped
     security_opt:
