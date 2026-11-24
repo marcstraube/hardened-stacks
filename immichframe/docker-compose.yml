@@ -1,0 +1,58 @@
+---
+name: immichframe
+
+services:
+  immichframe:
+    image: ghcr.io/immichframe/immichframe:v1.0.40.0
+    container_name: immichframe
+    restart: unless-stopped
+    security_opt:
+      - no-new-privileges:true
+    cap_drop:
+      - ALL
+    mem_limit: 512m
+    read_only: true
+    # Runs directly as PUID/PGID (the image's entrypoint does no user switch)
+    user: "${PUID:-1000}:${PGID:-1000}"
+    tmpfs:
+      - /tmp
+    labels:
+      # Four-part version tags (v1.0.40.0) do not match the default filter and
+      # are not semver, so all of them are watched
+      diun.include_tags: '^v\d+\.\d+\.\d+\.\d+$$'
+      diun.max_tags: "100"
+    ports:
+      - "127.0.0.1:${IMMICHFRAME_PORT:-8085}:8080"
+    environment:
+      TZ: Europe/Berlin
+      # Always set, so nobody can claim a fresh instance on the setup screen
+      IMMICHFRAME_ADMIN_PASSWORD: ${IMMICHFRAME_ADMIN_PASSWORD}
+      # No diagnostic sockets and debugger support
+      DOTNET_EnableDiagnostics: "0"
+      # Private CAs in ./certs are trusted in addition to the public ones
+      SSL_CERT_DIR: /etc/ssl/certs:/certs
+    volumes:
+      # SQLite settings database, includes the Immich API keys
+      - ./config:/app/Config
+      # Only used when DownloadImages is enabled
+      - ./cache:/app/ImageCache
+      - ./certs:/certs:ro
+    healthcheck:
+      # The image has neither curl nor wget
+      test:
+        - CMD
+        - bash
+        - -c
+        - >-
+          exec 3<>/dev/tcp/127.0.0.1/8080 &&
+          printf 'GET /api/Config/Version HTTP/1.0\r\nHost: localhost\r\n\r\n' >&3 &&
+          head -n 1 <&3 | grep -q ' 200 '
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

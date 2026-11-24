@@ -102,6 +102,13 @@
     "extra_images": "ghcr.io/immich-app/immich-machine-learning"
   },
   {
+    "name": "immichframe",
+    "image": "ghcr.io/immichframe/immichframe",
+    "github_repo": "immichFrame/ImmichFrame",
+    "file": "immichframe/docker-compose.yml",
+    "jq_filter": ".tag_name"
+  },
+  {
     "name": "jellyfin",
     "image": "jellyfin/jellyfin",
     "github_repo": "jellyfin/jellyfin",

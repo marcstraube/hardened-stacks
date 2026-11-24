@@ -29,6 +29,7 @@ consistent security practices out of the box.
 | [forgejo-runner](forgejo-runner/)   | Forgejo Actions runner (VM)  | —                       | [forgejo.org](https://forgejo.org/docs/latest/admin/actions/)                                          |
 | [homarr](homarr/)                   | Homepage / dashboard         | 7575                    | [homarr.dev](https://homarr.dev/docs/getting-started/)                                                 |
 | [immich](immich/)                   | Photo management             | 2283                    | [immich.app](https://immich.app/docs/overview/introduction)                                            |
+| [immichframe](immichframe/)         | Photo frame for Immich       | 8085                    | [immichframe.dev](https://immichframe.dev/docs/)                                                       |
 | [jellyfin](jellyfin/)               | Media server                 | 8096                    | [jellyfin.org](https://jellyfin.org/docs/)                                                             |
 | [karakeep](karakeep/)               | Bookmarks with AI tagging    | 3010                    | [docs.karakeep.app](https://docs.karakeep.app/)                                                        |
 | [kavita](kavita/)                   | Manga, comics and e-books    | 5010                    | [kavitareader.com](https://wiki.kavitareader.com/)                                                     |
@@ -104,6 +105,7 @@ All stacks bind to `127.0.0.1` and require a reverse proxy for access.
 | forgejo-runner  | —                        | —            | —       |
 | homarr          | 1                        | Yes          | 300s    |
 | immich          | 1                        | Yes          | 300s    |
+| immichframe     | 1                        | No           | 300s    |
 | jellyfin        | 1                        | Yes          | 300s    |
 | karakeep        | 1                        | Yes          | 300s    |
 | kavita          | 1                        | Yes          | 300s    |
