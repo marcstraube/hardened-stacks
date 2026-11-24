@@ -3,7 +3,7 @@ name: homarr
 
 services:
   docker-socket-proxy:
-    image: tecnativa/docker-socket-proxy:v0.4.2
+    image: tecnativa/docker-socket-proxy:v0.6.0
     container_name: homarr-socket-proxy
     restart: unless-stopped
     security_opt:

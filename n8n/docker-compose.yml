@@ -43,7 +43,7 @@ services:
         max-file: "3"
 
   n8n:
-    image: n8nio/n8n:2.48.4
+    image: n8nio/n8n:2.49.5
     container_name: n8n
     restart: unless-stopped
     labels:
@@ -96,7 +96,7 @@ services:
 
   runners:
     # Must have the same version as the n8n image
-    image: n8nio/runners:2.48.4
+    image: n8nio/runners:2.49.5
     container_name: n8n-runners
     restart: unless-stopped
     labels:
