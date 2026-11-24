@@ -76,6 +76,7 @@ setup_dirs() {
     forgejo-runner) dirs=() ;;  # named volumes in the runner VM
     homarr)        dirs=(data) ;;
     immich)        dirs=(postgres upload external model-cache) ;;
+    immichframe)   dirs=(config cache certs) ;;
     kavita)        dirs=(config library) ;;
     navidrome)     dirs=(data music) ;;
     changedetection) dirs=(data) ;;
@@ -106,7 +107,7 @@ setup_service() {
   echo ""
 }
 
-services=(activepieces adguard-home audiobookshelf authentik changedetection diun floppy forgejo forgejo-runner homarr immich jellyfin karakeep kavita monitoring n8n navidrome paperless-ngx spoolman uptime-kuma)
+services=(activepieces adguard-home audiobookshelf authentik changedetection diun floppy forgejo forgejo-runner homarr immich immichframe jellyfin karakeep kavita monitoring n8n navidrome paperless-ngx spoolman uptime-kuma)
 
 if [[ $# -gt 0 ]]; then
   for arg in "$@"; do

@@ -70,7 +70,7 @@ if git -C "$ROOT_DIR" remote get-url origin &>/dev/null; then
   echo ""
 fi
 
-services=(activepieces adguard-home audiobookshelf authentik changedetection diun floppy forgejo forgejo-runner homarr immich jellyfin karakeep kavita monitoring n8n navidrome paperless-ngx spoolman uptime-kuma)
+services=(activepieces adguard-home audiobookshelf authentik changedetection diun floppy forgejo forgejo-runner homarr immich immichframe jellyfin karakeep kavita monitoring n8n navidrome paperless-ngx spoolman uptime-kuma)
 
 if [[ $# -gt 0 ]]; then
   for arg in "$@"; do
