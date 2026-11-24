@@ -1,5 +1,17 @@
 # Changelog
 
+## [2.1.0](https://github.com/marcstraube/hardened-stacks/compare/v2.0.0...v2.1.0) (2026-11-24)
+
+
+### Features
+
+* **immichframe:** add new stack ([#25](https://github.com/marcstraube/hardened-stacks/issues/25)) ([1b7fedf](https://github.com/marcstraube/hardened-stacks/commit/1b7fedf7960bd79eca429fd382924849bdb12f3a))
+
+
+### Dependencies
+
+* **deps:** update redis and meilisearch ([#24](https://github.com/marcstraube/hardened-stacks/issues/24)) ([d2d56e7](https://github.com/marcstraube/hardened-stacks/commit/d2d56e78969054ade4cd67fd5133f4edb0ce7785))
+
 ## [2.0.0](https://github.com/marcstraube/hardened-stacks/compare/v1.0.2...v2.0.0) (2026-11-22)
 
 
